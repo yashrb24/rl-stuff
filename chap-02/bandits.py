@@ -4,7 +4,7 @@ from base import *
 
 def simulate_epsilon_greedy_stationary(runs=2000, steps=1000, initial=0, k_arms=10):
     arm_means = np.random.normal(loc=0, scale=1, size=k_arms)
-    epsilons = [0, 0.01, 0.1, 0.5]
+    epsilons = [0.01, 0.05, 0.1, 0.3]
     best_arm = np.argmax(arm_means)
 
     rewards = np.zeros((len(epsilons), runs, steps))
