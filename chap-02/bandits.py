@@ -144,4 +144,37 @@ def simulate_ucb(runs=2000, steps=1000, k_arms=10):
     )
 
 
-simulate_ucb()
+def simulate_gradients(runs=2000, steps=1000, k_arms=10):
+    arm_means = np.random.normal(loc=4, scale=1, size=k_arms)
+    best_arm = np.argmax(arm_means)
+
+    bandits = [
+        [Bandit(use_gradient=True, use_baseline=True, step_size=0.1) for _ in range(runs)],
+        [Bandit(use_gradient=True, use_baseline=True, step_size=0.4) for _ in range(runs)],
+        [Bandit(use_gradient=True, use_baseline=False, step_size=0.1) for _ in range(runs)],
+        [Bandit(use_gradient=True, use_baseline=False, step_size=0.4) for _ in range(runs)],
+    ]
+
+    rewards = np.zeros((4, runs, steps))
+    optimal = np.zeros((4, runs, steps))
+
+    for run in trange(runs):
+        for step in range(steps):
+            for i in range(4):
+                bandit = bandits[i][run]
+                action = bandit.action()
+                reward = np.random.normal(loc=arm_means[action], scale=1)
+                bandit.update(action=action, reward=reward)
+
+                rewards[i][run][step] = reward
+                optimal[i][run][step] = (action == best_arm)
+
+    plot_rewards_optimal_actions(
+        rewards=rewards,
+        optimal=optimal,
+        reward_labels = ["alpha = 0.1, with baseline", "alpha = 0.4, with baseline", "alpha = 0.1, without baseline", "alpha = 0.4, without baseline"],
+        optimal_labels = ["alpha = 0.1, with baseline", "alpha = 0.4, with baseline", "alpha = 0.1, without baseline", "alpha = 0.4, without baseline"]
+    )
+
+
+simulate_gradients()
