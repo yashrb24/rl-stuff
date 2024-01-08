@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from tqdm import trange
 from base import *
 
@@ -25,36 +24,21 @@ def simulate_epsilon_greedy_stationary(runs=2000, steps=1000, initial=0, k_arms=
                 rewards[i][run][step] = reward
                 optimal[i][run][step] = action == best_arm
 
-    steps_array = np.arange(1, steps + 1)
-
-    # plot for average reward
-    plt.subplot(2, 1, 1)
-    for i in range(len(epsilons)):
-        plt.plot(np.mean(rewards[i], axis=0), label=f"epsilon = {epsilons[i]}")
-    plt.xlabel("Steps")
-    plt.ylabel("Average Reward")
-    plt.legend()
-
-    # plot for percentage of times optimal action was taken
-    plt.subplot(2, 1, 2)
-    for i in range(len(epsilons)):
-        plt.plot(
-            np.mean(np.cumsum(optimal[i], axis=1), axis=0) * 100 / steps_array ,
-            label=f"epsilon = {epsilons[i]}",
-        )
-    plt.xlabel("Steps")
-    plt.ylabel("% Optimal Action")
-
-    plt.legend()
-    plt.show()
+    # plots
+    plot_rewards_optimal_actions(
+        rewards,
+        optimal,
+        reward_labels=[f"epsilon = {eps}" for eps in epsilons],
+        optimal_labels=[f"epsilon = {eps}" for eps in epsilons],
+    )
 
 
 def simulate_epsilon_greedy_non_stationary(runs=500, steps=10000, k_arms=10):
     arm_means = np.zeros(k_arms)
 
     bandits = [
-        [Bandit(average_estimate=True) for _ in range(runs)],
-        [Bandit(average_estimate=False) for _ in range(runs)],
+        [Bandit(use_average=True) for _ in range(runs)],
+        [Bandit(use_average=False) for _ in range(runs)],
     ]
 
     random_walks = np.random.normal(loc=0, scale=0.01, size=(runs, steps, k_arms))
@@ -63,44 +47,67 @@ def simulate_epsilon_greedy_non_stationary(runs=500, steps=10000, k_arms=10):
     optimal = np.zeros((2, runs, steps))
 
     for run in trange(runs):
+        tmp_arm_means = arm_means.copy()
+
         for step in range(steps):
-            best_arm = np.argmax(arm_means)
+            best_arm = np.argmax(tmp_arm_means)
 
             for i in range(2):
                 bandit = bandits[i][run]
                 action = bandit.action()
-                reward = np.random.normal(loc=arm_means[action], scale=1)
+                reward = np.random.normal(loc=tmp_arm_means[action], scale=1)
                 bandit.update(action, reward)
 
                 rewards[i][run][step] = reward
-                optimal[i][run][step] = (action == best_arm)
+                optimal[i][run][step] = action == best_arm
 
-            arm_means += random_walks[run][step]
+            tmp_arm_means += random_walks[run][step]
 
-    steps_array = np.arange(1, steps + 1)
-
-    # plot for average reward
-    plt.subplot(2, 1, 1)
-    plt.plot(np.mean(rewards[0], axis=0), label="with constant step size")
-    plt.plot(np.mean(rewards[1], axis=0), label="with sample average")
-    plt.xlabel("Steps")
-    plt.ylabel("Average Reward")
-    plt.legend()
-
-    # plot for percentage of times optimal action was taken
-    plt.subplot(2, 1, 2)
-    plt.plot(
-        np.mean(np.cumsum(optimal[0], axis=1), axis=0) / steps_array * 100,
-        label="with constant step size",
+    # plots
+    plot_rewards_optimal_actions(
+        rewards,
+        optimal,
+        reward_labels=["average step size", "constant step size"],
+        optimal_labels=["average step size", "constant step size"],
     )
-    plt.plot(
-        np.mean(np.cumsum(optimal[1], axis=1), axis=0) / steps_array * 100,
-        label="with sample average",
+
+
+def simulate_optimistic_initial(
+    runs=2000, steps=1000, initial=5, k_arms=10, epsilon=0.1
+):
+    arm_means = np.random.normal(loc=0, scale=1, size=k_arms)
+    best_arm = np.argmax(arm_means)
+
+    bandits = [
+        [
+            Bandit(epsilon=0, use_average=False, initial=initial)
+            for _ in range(runs)
+        ],
+        [
+            Bandit(epsilon=epsilon, use_average=False, initial=0)
+            for _ in range(runs)
+        ],
+    ]
+
+    rewards = np.zeros((2, runs, steps))
+    optimal = np.zeros((2, runs, steps))
+
+    for run in trange(runs):
+        for step in range(steps):
+            for i in range(2):
+                bandit = bandits[i][run]
+                action = bandit.action()
+                reward = np.random.normal(loc=arm_means[action], scale=1)
+                bandit.update(action=action, reward=reward)
+
+                rewards[i][run][step] = reward
+                optimal[i][run][step] = best_arm == action
+
+    # plots
+    plot_rewards_optimal_actions(
+        rewards=rewards,
+        optimal=optimal,
+        reward_labels=["Optimisitc, Greedy", "Realistic, Epsilon-Greedy"],
+        optimal_labels=["Optimisitc, Greedy", "Realistic, Epsilon-Greedy"],
     )
-    plt.xlabel("Steps")
-    plt.ylabel("% Optimal Action")
-    plt.legend()
-
-    plt.show()
-
 
