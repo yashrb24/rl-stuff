@@ -30,12 +30,13 @@ class Bandit:
                 if n == 0:
                     action = i
                     break
-            upper_bound_array = self.q_values + self.ucb_constant * np.sqrt(self.timestep / self.n_values)
-            action = np.argmax(upper_bound_array)
+            else:
+                upper_bound_array = self.q_values + self.ucb_constant * np.sqrt(np.log(self.timestep) / self.n_values)
+                action = np.argmax(upper_bound_array)
 
         elif np.random.random() < self.epsilon:
             action = np.random.randint(0, self.k_arms)
-            
+
         else:
             action = np.argmax(self.q_values)
 

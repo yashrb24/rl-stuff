@@ -111,3 +111,37 @@ def simulate_optimistic_initial(
         optimal_labels=["Optimisitc, Greedy", "Realistic, Epsilon-Greedy"],
     )
 
+def simulate_ucb(runs=2000, steps=1000, k_arms=10):
+    arm_means = np.random.normal(loc=0, scale=1, size=k_arms)
+    best_arm = np.argmax(arm_means)
+
+    bandits =[
+        [Bandit(use_ucb=True, ucb_constant=2) for _ in range(runs)],
+        [Bandit(use_ucb=True, ucb_constant=1) for _ in range(runs)],
+        [Bandit(epsilon=0.1) for _ in range(runs)]
+    ]
+
+    rewards = np.zeros((3, runs, steps))
+    optimal = np.zeros((3, runs, steps))
+
+    for run in trange(runs):
+        for step in range(steps):
+            for i in range(3):
+                bandit = bandits[i][run]
+                action = bandit.action()
+                reward = np.random.normal(loc=arm_means[action], scale=1)
+                bandit.update(action=action, reward=reward)
+
+                rewards[i][run][step] = reward
+                optimal[i][run][step] = (action == best_arm)
+
+    
+    plot_rewards_optimal_actions(
+        rewards=rewards,
+        optimal=optimal,
+        reward_labels=["UCB c = 2", "UCB c = 1", "Epsilon-Greedy"],
+        optimal_labels=["UCB c = 2", "UCB c = 1", "Epsilon-Greedy"]
+    )
+
+
+simulate_ucb()
